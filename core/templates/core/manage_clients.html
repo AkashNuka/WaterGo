@@ -1,0 +1,56 @@
+{% extends 'core/owner_base.html' %}
+
+{% block title %}Manage Clients - WaterGo{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Manage Clients</h1>
+            <p class="text-muted">Manage your customer accounts</p>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Registered Clients</h5>
+    </div>
+    <div class="card-body">
+        {% if clients %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <th>Joined On</th>
+                        <th>Total Orders</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>{{ client.id }}</td>
+                        <td>{{ client.user.username }}</td>
+                        <td>{{ client.user.email }}</td>
+                        <td>{{ client.phone }}</td>
+                        <td>{{ client.address|truncatechars:30 }}</td>
+                        <td>{{ client.created_at|date:"M d, Y" }}</td>
+                        <td>{{ client.orders.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            No clients registered yet.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% extends 'core/owner_base.html' %}
+{% load custom_filters %}
+
+{% block title %}Owner Dashboard - WaterGo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .growth-positive {
+        color: #198754;
+    }
+    .growth-negative {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Business Analytics Dashboard</h1>
+    <p class="text-muted">Overview of your water delivery business performance</p>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Total Revenue</h6>
+                <h3 class="mb-2">₹{{ total_revenue|floatformat:2 }}</h3>
+                <p class="mb-0 {% if revenue_growth >= 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                    <i class="fas {% if revenue_growth >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %}"></i>
+                    {{ revenue_growth|abs_value }}% from last month
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Total Orders</h6>
+                <h3 class="mb-2">{{ total_orders }}</h3>
+                <p class="mb-0">
+                    <span class="text-primary">{{ order_status_data.pending.count }}</span> pending
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Customers</h6>
+                <h3 class="mb-2">{{ total_customers }}</h3>
+                <p class="mb-0 {% if customer_growth >= 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                    <i class="fas {% if customer_growth >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %}"></i>
+                    {{ customer_growth|abs_value }}% new this month
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Revenue Split</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0 small">Regular</p>
+                        <h5 class="mb-0">₹{{ regular_revenue|floatformat:0 }}</h5>
+                    </div>
+                    <div>
+                        <p class="mb-0 small">Guest</p>
+                        <h5 class="mb-0">₹{{ guest_revenue|floatformat:0 }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <!-- Revenue Trend -->
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Revenue Trend ({{ current_year }})</h5>
+                <canvas id="revenueChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Status -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Order Status Distribution</h5>
+                <canvas id="orderStatusChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Row -->
+<div class="row mb-4">
+    <!-- Order Volume Trend -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Order Volume Trend</h5>
+                <canvas id="orderVolumeChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Popularity -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Product Popularity</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Orders</th>
+                                <th>Share</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in water_type_data %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ product.percentage }}%"></div>
+                                    </div>
+                                    {{ product.percentage }}%
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">↑</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Regular Orders</h5>
+                <a href="{% url 'manage_orders' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.customer.user.username }}</td>
+                                <td>₹{{ order.total_price }}</td>
+                                <td>
+                                    <span class="badge {% if order.status == 'pending' %}bg-warning
+                                        {% elif order.status == 'confirmed' %}bg-info
+                                        {% elif order.status == 'in_transit' %}bg-primary
+                                        {% elif order.status == 'delivered' %}bg-success
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Guest Orders</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Name</th>
+                                <th>Tankers</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_guest_orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.name }}</td>
+                                <td>{{ order.tanker_count }}</td>
+                                <td>₹{{ order.total_price }}</td>
+                                <td>
+                                    <span class="badge {% if order.status == 'pending' %}bg-warning
+                                        {% elif order.status == 'confirmed' %}bg-info
+                                        {% elif order.status == 'in_transit' %}bg-primary
+                                        {% elif order.status == 'delivered' %}bg-success
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Monthly Revenue (₹)',
+                data: {{ monthly_revenue }},
+                borderColor: '#0d6efd',
+                tension: 0.1,
+                fill: true,
+                backgroundColor: 'rgba(13, 110, 253, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Order Status Chart
+    const statusCtx = document.getElementById('orderStatusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'Confirmed', 'In Transit', 'Delivered', 'Cancelled'],
+            datasets: [{
+                data: [
+                    {{ order_status_data.pending.count }},
+                    {{ order_status_data.confirmed.count }},
+                    {{ order_status_data.in_transit.count }},
+                    {{ order_status_data.delivered.count }},
+                    {{ order_status_data.cancelled.count }}
+                ],
+                backgroundColor: [
+                    '#ffc107',
+                    '#0dcaf0',
+                    '#0d6efd',
+                    '#198754',
+                    '#dc3545'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+
+    // Order Volume Chart
+    const volumeCtx = document.getElementById('orderVolumeChart').getContext('2d');
+    new Chart(volumeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Number of Orders',
+                data: {{ monthly_orders }},
+                backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                borderColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

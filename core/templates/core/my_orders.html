@@ -1,0 +1,285 @@
+{% extends 'core/client_base.html' %}
+
+{% block title %}My Orders | WaterGo{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1>My Orders</h1>
+            <p class="text-muted">Track all your water orders</p>
+        </div>
+        <div>
+            <a href="{% url 'client_dashboard' %}#order" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Place New Order
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#regular-orders" data-bs-toggle="tab">Regular Orders</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#tanker-orders" data-bs-toggle="tab">Tanker Orders</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    <!-- Regular Orders -->
+                    <div class="tab-pane fade show active" id="regular-orders">
+                        {% if orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Water Type</th>
+                                            <th>Quantity</th>
+                                            <th>Total Price</th>
+                                            <th>Delivery Address</th>
+                                            <th>Status</th>
+                                            <th>Order Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in orders %}
+                                            <tr>
+                                                <td>#{{ order.id }}</td>
+                                                <td>{{ order.water_type.name }}</td>
+                                                <td>{{ order.quantity }}</td>
+                                                <td>₹{{ order.total_price }}</td>
+                                                <td>
+                                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ order.delivery_address }}">
+                                                        {{ order.delivery_address }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if order.status == 'pending' %}bg-warning
+                                                        {% elif order.status == 'confirmed' %}bg-info
+                                                        {% elif order.status == 'in_transit' %}bg-primary
+                                                        {% elif order.status == 'delivered' %}bg-success
+                                                        {% else %}bg-danger{% endif %}">
+                                                        {{ order.status|title }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ order.order_date|date:"M d, Y H:i" }}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#orderDetails" 
+                                                            data-order-id="{{ order.id }}"
+                                                            onclick="showOrderDetails(this)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    {% if order.status == 'pending' %}
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                onclick="cancelOrder('{{ order.id }}')">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-shopping-cart text-muted fa-3x mb-3"></i>
+                                <p class="text-muted mb-3">You haven't placed any regular orders yet.</p>
+                                <a href="{% url 'client_dashboard' %}#order" class="btn btn-primary">Browse Water Products</a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tanker Orders -->
+                    <div class="tab-pane fade" id="tanker-orders">
+                        {% if guest_orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Tankers</th>
+                                            <th>Total Price</th>
+                                            <th>Delivery Address</th>
+                                            <th>Status</th>
+                                            <th>Order Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in guest_orders %}
+                                            <tr>
+                                                <td>#{{ order.id }}</td>
+                                                <td>{{ order.tanker_count }}</td>
+                                                <td>₹{{ order.total_price }}</td>
+                                                <td>
+                                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ order.address }}">
+                                                        {{ order.address }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if order.status == 'pending' %}bg-warning
+                                                        {% elif order.status == 'confirmed' %}bg-info
+                                                        {% elif order.status == 'in_transit' %}bg-primary
+                                                        {% elif order.status == 'delivered' %}bg-success
+                                                        {% else %}bg-danger{% endif %}">
+                                                        {{ order.status|title }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ order.created_at|date:"M d, Y H:i" }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-truck text-muted fa-3x mb-3"></i>
+                                <p class="text-muted mb-3">You haven't placed any tanker orders yet.</p>
+                                <a href="{% url 'client_dashboard' %}#bulk-order" class="btn btn-primary">Order Water Tanker</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetails" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showOrderDetails(button) {
+    const orderId = button.dataset.orderId;
+    const modalBody = document.querySelector('#orderDetails .modal-body');
+    
+    // Show loading spinner
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    // Fetch order details
+    fetch(`/api/orders/${orderId}/`)
+        .then(response => response.json())
+        .then(order => {
+            modalBody.innerHTML = `
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Order Number:</th>
+                        <td>#${order.id}</td>
+                    </tr>
+                    <tr>
+                        <th>Water Type:</th>
+                        <td>${order.water_type.name}</td>
+                    </tr>
+                    <tr>
+                        <th>Quantity:</th>
+                        <td>${order.quantity}</td>
+                    </tr>
+                    <tr>
+                        <th>Price per Unit:</th>
+                        <td>₹${order.water_type.price_per_unit}</td>
+                    </tr>
+                    <tr>
+                        <th>Total Price:</th>
+                        <td>₹${order.total_price}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge ${getStatusBadgeClass(order.status)}">
+                                ${order.status}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Delivery Address:</th>
+                        <td>${order.delivery_address}</td>
+                    </tr>
+                    <tr>
+                        <th>Order Date:</th>
+                        <td>${new Date(order.order_date).toLocaleString()}</td>
+                    </tr>
+                    ${order.delivery_date ? `
+                        <tr>
+                            <th>Delivery Date:</th>
+                            <td>${new Date(order.delivery_date).toLocaleString()}</td>
+                        </tr>
+                    ` : ''}
+                </table>
+            `;
+        })
+        .catch(error => {
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading order details. Please try again.
+                </div>
+            `;
+        });
+}
+
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'pending': return 'bg-warning';
+        case 'confirmed': return 'bg-info';
+        case 'in_transit': return 'bg-primary';
+        case 'delivered': return 'bg-success';
+        default: return 'bg-danger';
+    }
+}
+
+function cancelOrder(orderId) {
+    if (confirm('Are you sure you want to cancel this order?')) {
+        fetch(`/api/orders/${orderId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error canceling order. Please try again.');
+            }
+        })
+        .catch(error => {
+            alert('Error canceling order. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

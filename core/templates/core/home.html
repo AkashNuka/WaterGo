@@ -1,0 +1,294 @@
+{% extends 'core/base.html' %}
+
+{% block title %}WaterGo - Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-4" id="home">
+    <div class="col-12">
+        <div class="bg-light p-5 rounded-lg text-center">
+            <h1 class="display-4">Welcome to WaterGo</h1>
+            <p class="lead">Your reliable water delivery service. Get clean, fresh water delivered to your doorstep.</p>
+            <hr class="my-4">
+            <p>Choose from our selection of water types below and place your order now!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Beverages Section -->
+<div class="row mb-5" id="beverages">
+    <div class="col-12 text-center mb-4">
+        <h2>Our Beverages</h2>
+        <p class="lead">Premium quality water for every need</p>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1560847468-5eef3b5ea738" class="card-img-top" alt="Mineral Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Premium Mineral Water</h6>
+                <p class="card-text small">Natural spring water rich in minerals.</p>
+                <p class="card-text"><strong>₹50</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="1" data-name="Premium Mineral Water" data-price="50">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1575503802870-45de6a6217c8" class="card-img-top" alt="Alkaline Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Alkaline Water</h6>
+                <p class="card-text small">pH balanced water for better health.</p>
+                <p class="card-text"><strong>₹60</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="2" data-name="Alkaline Water" data-price="60">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1548839140-29a749e1cf4d" class="card-img-top" alt="Spring Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Natural Spring Water</h6>
+                <p class="card-text small">Pure spring water from the mountains.</p>
+                <p class="card-text"><strong>₹45</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="3" data-name="Natural Spring Water" data-price="45">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1616118132534-1b62c867f258" class="card-img-top" alt="Purified Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Purified Water</h6>
+                <p class="card-text small">Ultra-pure water for daily consumption.</p>
+                <p class="card-text"><strong>₹40</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="4" data-name="Purified Water" data-price="40">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1564419429381-98dbcf916478" class="card-img-top" alt="Flavored Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Flavored Water</h6>
+                <p class="card-text small">Refreshing naturally flavored water.</p>
+                <p class="card-text"><strong>₹55</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="5" data-name="Flavored Water" data-price="55">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card water-card h-100 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1550505095-81378a674286" class="card-img-top" alt="Distilled Water" style="height: 140px; object-fit: cover;">
+            <div class="card-body p-3">
+                <h6 class="card-title">Distilled Water</h6>
+                <p class="card-text small">Pure distilled water for specific needs.</p>
+                <p class="card-text"><strong>₹45</strong> per unit</p>
+                <button class="btn btn-primary btn-sm w-100 add-to-cart" data-id="6" data-name="Distilled Water" data-price="45">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Guest Order Section -->
+<div class="row mb-5" id="guest-order">
+    <div class="col-12 text-center mb-4">
+        <h2>Water Tanker Service</h2>
+        <p class="lead">Order water tankers without registration</p>
+    </div>
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Bulk Water Delivery</h5>
+                <p class="card-text">1000 liters per tanker at ₹500</p>
+                <form id="guestOrderForm" class="mt-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="tankerCount" class="form-label">Number of Tankers</label>
+                        <input type="number" class="form-control" id="tankerCount" min="1" value="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="guestName" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="guestName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="guestPhone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="guestPhone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="guestAddress" class="form-label">Delivery Address</label>
+                        <textarea class="form-control" id="guestAddress" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Place Tanker Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Section -->
+<div class="row mb-5" id="about">
+    <div class="col-12 text-center mb-4">
+        <h2>About Us</h2>
+        <p class="lead">Your Trusted Water Delivery Partner</p>
+    </div>
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <p>WaterGo is your reliable partner for all water delivery needs. We ensure:</p>
+                <ul>
+                    <li>24/7 delivery service</li>
+                    <li>Pure and tested water quality</li>
+                    <li>Professional delivery staff</li>
+                    <li>Competitive pricing</li>
+                    <li>Excellent customer service</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Section -->
+<div class="row mb-5" id="contact">
+    <div class="col-12 text-center mb-4">
+        <h2>Contact Us</h2>
+        <p class="lead">Get in touch with our support team</p>
+    </div>
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Contact Information</h5>
+                        <p><i class="fas fa-phone"></i> +1234567890</p>
+                        <p><i class="fas fa-envelope"></i> support@watergo.com</p>
+                        <p><i class="fas fa-map-marker-alt"></i> 123 Water Street, City</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Business Hours</h5>
+                        <p>Monday - Saturday: 8:00 AM - 8:00 PM</p>
+                        <p>Sunday: 9:00 AM - 5:00 PM</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shopping Cart Modal -->
+<div class="modal fade" id="cartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Shopping Cart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cartItems">
+                    <!-- Cart items will be dynamically added here -->
+                </div>
+                <div class="text-end mt-3">
+                    <h5>Total: ₹<span id="cartTotal">0</span></h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="checkoutBtn">Checkout</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cart = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart from localStorage if available
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+        cart = JSON.parse(savedCart);
+        updateCartBadge();
+    }
+
+    // Add to cart buttons
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const price = parseFloat(this.dataset.price);
+            
+            const existingItem = cart.find(item => item.id === id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartBadge();
+        });
+    });
+
+    // Guest order form submission
+    document.getElementById('guestOrderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('tanker_count', document.getElementById('tankerCount').value);
+        formData.append('name', document.getElementById('guestName').value);
+        formData.append('phone', document.getElementById('guestPhone').value);
+        formData.append('address', document.getElementById('guestAddress').value);
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // Send the order to the backend
+        fetch('{% url "create_guest_order" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Thank you! Your water tanker order has been received. We will contact you shortly.');
+                this.reset();
+            } else {
+                alert('Sorry, there was an error placing your order. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Sorry, there was an error placing your order. Please try again.');
+        });
+    });
+
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+});
+
+function updateCartBadge() {
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const badge = document.getElementById('cartBadge');
+    if (badge) {
+        badge.textContent = totalItems;
+        badge.style.display = totalItems > 0 ? 'inline' : 'none';
+    }
+}
+</script>
+{% endblock %}

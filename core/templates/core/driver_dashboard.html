@@ -1,0 +1,173 @@
+{% extends 'core/driver_base.html' %}
+
+{% block title %}Driver Dashboard - WaterGo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .growth-positive {
+        color: #198754;
+    }
+    .growth-negative {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Driver Dashboard</h1>
+    <p class="text-muted">Manage your deliveries and track your performance</p>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Today's Deliveries</h6>
+                <h3 class="mb-2">{{ completed_today }}</h3>
+                <p class="mb-0 text-success">
+                    <i class="fas fa-check-circle"></i>
+                    Completed
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Active Deliveries</h6>
+                <h3 class="mb-2">{{ active_deliveries|length }}</h3>
+                <p class="mb-0 text-primary">
+                    <i class="fas fa-truck"></i>
+                    In Transit
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted">Available Orders</h6>
+                <h3 class="mb-2">{{ available_orders|length }}</h3>
+                <p class="mb-0 text-warning">
+                    <i class="fas fa-clock"></i>
+                    Waiting for Driver
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Deliveries -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Active Deliveries</h5>
+            </div>
+            <div class="card-body">
+                {% if active_deliveries %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Water Type</th>
+                                    <th>Quantity</th>
+                                    <th>Address</th>
+                                    <th>Started At</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for delivery in active_deliveries %}
+                                <tr>
+                                    <td>#{{ delivery.order.id }}</td>
+                                    <td>{{ delivery.order.customer.user.username }}</td>
+                                    <td>{{ delivery.order.water_type.name }}</td>
+                                    <td>{{ delivery.order.quantity }}</td>
+                                    <td>{{ delivery.order.delivery_address|truncatechars:30 }}</td>
+                                    <td>{{ delivery.started_at|date:"M d, H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'complete_delivery' delivery.id %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check"></i> Complete
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-truck-loading text-muted fa-3x mb-3"></i>
+                        <p class="text-muted">You don't have any active deliveries right now.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Available Orders -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Available Orders</h5>
+            </div>
+            <div class="card-body">
+                {% if available_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Water Type</th>
+                                    <th>Quantity</th>
+                                    <th>Address</th>
+                                    <th>Order Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in available_orders %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{{ order.customer.user.username }}</td>
+                                    <td>{{ order.water_type.name }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>{{ order.delivery_address|truncatechars:30 }}</td>
+                                    <td>{{ order.order_date|date:"M d, H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'accept_delivery' order.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-truck"></i> Accept
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock text-muted fa-3x mb-3"></i>
+                        <p class="text-muted">There are no orders waiting for delivery right now.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

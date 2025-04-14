@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WaterGo Driver Portal{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --sidebar-bg: #f8f9fa;
+            --hover-bg: #e2e6ea;
+        }
+        
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid #dee2e6;
+            padding-top: 20px;
+            z-index: 1000;
+        }
+        
+        .sidebar-header {
+            padding: 0 15px 20px;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .sidebar-brand {
+            font-weight: bold;
+            font-size: 24px;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li a {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            color: #343a40;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .sidebar-menu li a:hover {
+            background-color: var(--hover-bg);
+            color: var(--primary-color);
+        }
+        
+        .sidebar-menu li.active a {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar-menu li i {
+            margin-right: 10px;
+            width: 25px;
+            text-align: center;
+            font-size: 18px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            transition: margin-left 0.3s;
+        }
+        
+        .content-header {
+            margin-bottom: 30px;
+        }
+        
+        .stats-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-icon {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .stats-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stats-label {
+            color: var(--secondary-color);
+            font-size: 14px;
+        }
+        
+        .logout-section {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            padding: 0 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                overflow: hidden;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{% url 'driver_dashboard' %}" class="sidebar-brand">
+                <i class="fas fa-tint"></i> WaterGo
+            </a>
+            <div class="mt-2 text-muted">
+                Driver Portal
+            </div>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="{% if request.resolver_match.url_name == 'driver_dashboard' %}active{% endif %}">
+                <a href="{% url 'driver_dashboard' %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li class="{% if request.resolver_match.url_name == 'driver_delivery_history' %}active{% endif %}">
+                <a href="{% url 'driver_delivery_history' %}">
+                    <i class="fas fa-history"></i> Delivery History
+                </a>
+            </li>
+        </ul>
+        
+        <div class="logout-section">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-3">
+                <span>{{ request.user.username }}</span>
+                <small class="text-muted">Driver</small>
+            </div>
+            <a href="{% url 'logout' %}" class="btn btn-outline-primary w-100">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

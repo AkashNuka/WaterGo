@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ water_type.name }} | WaterGo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        {% if water_type.image_url %}
+            <img src="{{ water_type.image_url }}" class="img-fluid rounded" alt="{{ water_type.name }}">
+        {% else %}
+            <div class="bg-light text-center p-5 rounded">
+                <i class="fas fa-tint fa-5x text-primary"></i>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-6">
+        <h1>{{ water_type.name }}</h1>
+        <p class="lead">{{ water_type.description }}</p>
+        <p class="fs-4">${{ water_type.price_per_unit }} per unit</p>
+        
+        <a href="{% url 'place_order' water_type.id %}" class="btn btn-primary btn-lg">Place Order</a>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary">Back to Available Waters</a>
+    </div>
+</div>
+{% endblock %}

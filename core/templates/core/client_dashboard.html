@@ -1,0 +1,341 @@
+{% extends 'core/client_base.html' %}
+
+{% block title %}Client Dashboard - WaterGo{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Dashboard</h1>
+    <p class="text-muted">Welcome to your water delivery dashboard</p>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="stats-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="stats-number">{{ pending_orders }}</div>
+                <div class="stats-label">Active Orders</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="stats-icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="stats-number">{{ recent_orders|length }}</div>
+                <div class="stats-label">Total Orders</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="stats-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stats-number">{{ delivered_orders|default:0 }}</div>
+                <div class="stats-label">Delivered Orders</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Orders</h5>
+                <a href="{% url 'my_orders' %}" class="btn btn-sm btn-primary">View All Orders</a>
+            </div>
+            <div class="card-body">
+                {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Water Type</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{{ order.water_type.name }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>₹{{ order.total_price }}</td>
+                                    <td>
+                                        <span class="badge {% if order.status == 'pending' %}bg-warning
+                                            {% elif order.status == 'confirmed' %}bg-info
+                                            {% elif order.status == 'in_transit' %}bg-primary
+                                            {% elif order.status == 'delivered' %}bg-success
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ order.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ order.order_date|date:"M d, H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-cart text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-0">You haven't placed any orders yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Water Types Grid -->
+<div class="row mb-4">
+    <div class="col-12 mb-3">
+        <h2>Order Water</h2>
+        <p class="text-muted">Choose from our selection of premium water products</p>
+    </div>
+    
+    {% for water_type in water_types %}
+    <div class="col-md-4 mb-4">
+        <div class="card water-card h-100">
+            {% if water_type.image_url %}
+                <img src="{{ water_type.image_url }}" class="card-img-top" alt="{{ water_type.name }}" style="height: 200px; object-fit: cover;">
+            {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-tint fa-4x text-primary"></i>
+                </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ water_type.name }}</h5>
+                <p class="card-text">{{ water_type.description }}</p>
+                <p class="card-text"><strong>₹{{ water_type.price_per_unit }}</strong> per unit</p>
+                <div class="mt-auto">
+                    <div class="input-group mb-3">
+                        <input type="number" class="form-control" value="1" min="1" id="quantity-{{ water_type.id }}">
+                        <button class="btn btn-primary add-to-cart" 
+                                data-id="{{ water_type.id }}"
+                                data-name="{{ water_type.name }}"
+                                data-price="{{ water_type.price_per_unit }}">
+                            <i class="fas fa-cart-plus"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Bulk Water Order Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Bulk Water Delivery</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Water Tanker Service</h6>
+                        <p>Need a large quantity of water? Order our tanker service!</p>
+                        <ul>
+                            <li>1000 liters per tanker</li>
+                            <li>Fast delivery</li>
+                            <li>Competitive pricing</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <form id="tankerOrderForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="tankerCount" class="form-label">Number of Tankers</label>
+                                <input type="number" class="form-control" id="tankerCount" min="1" value="1">
+                                <div class="form-text">₹500 per tanker (1000 liters)</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="deliveryAddress" class="form-label">Delivery Address</label>
+                                <textarea class="form-control" id="deliveryAddress" rows="2" required>{{ customer.address }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-truck"></i> Order Tanker Service
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Shopping cart functionality
+let cart = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart from localStorage
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+        cart = JSON.parse(savedCart);
+        updateCartDisplay();
+    }
+
+    // Add to cart buttons
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const price = parseFloat(this.dataset.price);
+            const quantity = parseInt(document.querySelector(`#quantity-${id}`).value);
+            
+            const existingItem = cart.find(item => item.id === id);
+            if (existingItem) {
+                existingItem.quantity += quantity;
+            } else {
+                cart.push({ id, name, price, quantity });
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartDisplay();
+            
+            // Show feedback
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+            toast.innerHTML = `
+                Added ${quantity} ${name} to cart
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        });
+    });
+
+    // Checkout button
+    document.getElementById('checkoutBtn').addEventListener('click', function() {
+        if (cart.length === 0) {
+            alert('Your cart is empty');
+            return;
+        }
+        
+        // Convert cart items to order format
+        const orders = cart.map(item => ({
+            water_type_id: item.id,
+            quantity: item.quantity,
+            delivery_address: '{{ customer.address|escapejs }}'
+        }));
+        
+        // Submit orders
+        Promise.all(orders.map(order => 
+            fetch('{% url "place_order" "0" %}'.replace('0', order.water_type_id), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: new URLSearchParams(order)
+            })
+        ))
+        .then(() => {
+            // Clear cart and redirect
+            localStorage.removeItem('cart');
+            cart = [];
+            window.location.href = '{% url "my_orders" %}';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an error processing your order. Please try again.');
+        });
+    });
+
+    // Tanker order form
+    document.getElementById('tankerOrderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('tanker_count', document.getElementById('tankerCount').value);
+        formData.append('address', document.getElementById('deliveryAddress').value);
+
+        fetch('{% url "create_guest_order" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Your tanker order has been placed successfully!');
+                this.reset();
+                location.reload();
+            } else {
+                alert('There was an error placing your order. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an error placing your order. Please try again.');
+        });
+    });
+});
+
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cartItems');
+    const cartTotal = document.getElementById('cartTotal');
+    const cartBadge = document.getElementById('cartBadge');
+    
+    // Clear current items
+    cartItems.innerHTML = '';
+    
+    // Calculate total and update display
+    let total = 0;
+    let totalItems = 0;
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        totalItems += item.quantity;
+        
+        cartItems.innerHTML += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h6 class="mb-0">${item.name}</h6>
+                    <small class="text-muted">₹${item.price} × ${item.quantity}</small>
+                </div>
+                <div>
+                    <span class="fw-bold">₹${itemTotal}</span>
+                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart('${item.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    cartTotal.textContent = total;
+    cartBadge.textContent = totalItems;
+    cartBadge.style.display = totalItems > 0 ? 'inline' : 'none';
+}
+
+function removeFromCart(id) {
+    cart = cart.filter(item => item.id !== id);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartDisplay();
+}
+</script>
+{% endblock %}

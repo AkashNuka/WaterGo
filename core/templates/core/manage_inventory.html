@@ -1,0 +1,54 @@
+{% extends 'core/owner_base.html' %}
+
+{% block title %}Manage Inventory - WaterGo{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Inventory Management</h1>
+    <p class="text-muted">Manage your water types and inventory</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-end">
+            <a href="{% url 'add_water_type' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Water Type
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for water_type in water_types %}
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm h-100">
+            {% if water_type.image_url %}
+            <img src="{{ water_type.image_url }}" class="card-img-top" alt="{{ water_type.name }}" style="height: 180px; object-fit: cover;">
+            {% else %}
+            <div class="card-img-top bg-light d-flex justify-content-center align-items-center" style="height: 180px;">
+                <i class="fas fa-tint fa-4x text-primary"></i>
+            </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ water_type.name }}</h5>
+                <p class="card-text">{{ water_type.description|truncatechars:100 }}</p>
+                <div class="mt-auto">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary fs-6">₹{{ water_type.price_per_unit }}</span>
+                        <a href="{% url 'edit_water_type' water_type.id %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <p class="mb-0">You haven't added any water types yet. <a href="{% url 'add_water_type' %}">Add your first one now</a>.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
