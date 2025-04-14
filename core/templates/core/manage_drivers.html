@@ -43,7 +43,9 @@
                         <td>{{ driver.vehicle_info }}</td>
                         <td>{{ driver.created_at|date:"M d, Y" }}</td>
                         <td>
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge {% if driver.status == 'available' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if driver.status == 'available' %}Available{% else %}Unavailable{% endif %}
+                            </span>
                         </td>
                     </tr>
                     {% endfor %}

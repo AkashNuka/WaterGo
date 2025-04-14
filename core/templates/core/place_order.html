@@ -22,6 +22,13 @@
                         <textarea class="form-control" id="delivery_address" name="delivery_address" rows="3" required></textarea>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Select Delivery Location on Map</label>
+                        <div id="map" style="height: 300px; width: 100%;"></div>
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
+                        <div class="form-text">Click on the map to set your delivery location.</div>
+                    </div>
+                    <div class="mb-3">
                         <label for="phone" class="form-label">Phone Number</label>
                         <input type="tel" class="form-control" id="phone" name="phone" required>
                     </div>
@@ -34,4 +41,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+<script>
+let map, marker;
+function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 20.5937, lng: 78.9629 }, // Center on India
+        zoom: 5
+    });
+    map.addListener('click', function(e) {
+        placeMarker(e.latLng);
+    });
+}
+function placeMarker(location) {
+    if (marker) marker.setMap(null);
+    marker = new google.maps.Marker({
+        position: location,
+        map: map
+    });
+    document.getElementById('latitude').value = location.lat();
+    document.getElementById('longitude').value = location.lng();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+});
+</script>
 {% endblock %}

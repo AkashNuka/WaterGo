@@ -63,6 +63,12 @@ class Driver(models.Model):
     license_number = models.CharField(max_length=50)
     vehicle_info = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
+    status = models.CharField(
+        max_length=20,
+        choices=[('available', 'Available'), ('unavailable', 'Unavailable')],
+        default='unavailable',
+        help_text='Driver availability for auto-assignment'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -94,6 +100,8 @@ class Order(models.Model):
     delivery_address = models.TextField()
     order_date = models.DateTimeField(auto_now_add=True)
     delivery_date = models.DateTimeField(blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     
     def __str__(self):
         return f"Order #{self.id} by {self.customer.user.username}"

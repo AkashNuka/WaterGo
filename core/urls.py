@@ -22,6 +22,7 @@ urlpatterns = [
     
     # Driver URLs
     path('driver/dashboard/', views.driver_dashboard, name='driver_dashboard'),
+    path('driver/toggle-status/', views.toggle_driver_status, name='toggle_driver_status'),
     path('driver/accept-delivery/<int:order_id>/', views.accept_delivery, name='accept_delivery'),
     path('driver/complete-delivery/<int:delivery_id>/', views.complete_delivery, name='complete_delivery'),
     path('driver/delivery-history/', views.driver_delivery_history, name='driver_delivery_history'),

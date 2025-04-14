@@ -20,9 +20,27 @@
 {% endblock %}
 
 {% block content %}
-<div class="content-header">
-    <h1>Driver Dashboard</h1>
-    <p class="text-muted">Manage your deliveries and track your performance</p>
+<div class="content-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1>Driver Dashboard</h1>
+        <p class="text-muted">Manage your deliveries and track your performance</p>
+    </div>
+    <div>
+        <form method="post" action="{% url 'toggle_driver_status' %}" class="d-flex align-items-center">
+            {% csrf_token %}
+            <label class="me-3 mb-0">Availability Status:</label>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="statusToggle" name="is_available" 
+                       {% if driver.status == 'available' %}checked{% endif %} 
+                       onchange="this.form.submit()" role="switch">
+                <label class="form-check-label" for="statusToggle">
+                    <span class="badge {% if driver.status == 'available' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if driver.status == 'available' %}Available{% else %}Unavailable{% endif %}
+                    </span>
+                </label>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Key Metrics Cards -->
@@ -62,6 +80,37 @@
                     <i class="fas fa-clock"></i>
                     Waiting for Driver
                 </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Delivery Performance (Last 14 Days)</h5>
+                <canvas id="deliveryPerformanceChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Average Delivery Time</h5>
+                <p class="display-6">{{ avg_delivery_time|default:'N/A' }}</p>
+                <p class="text-muted">(hh:mm:ss)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Active Delivery Locations</h5>
+                <div id="driver-map" style="height: 350px; width: 100%;"></div>
             </div>
         </div>
     </div>
@@ -170,4 +219,71 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delivery Performance Chart
+    const perfCtx = document.getElementById('deliveryPerformanceChart').getContext('2d');
+    new Chart(perfCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ date_labels|safe }},
+            datasets: [{
+                label: 'Deliveries',
+                data: {{ deliveries_per_day|safe }},
+                backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                borderColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, stepSize: 1 }
+            }
+        }
+    });
+
+    // Map for active deliveries
+    const deliveries = [
+        {% for delivery in active_deliveries %}
+        {
+            id: {{ delivery.order.id }},
+            address: `{{ delivery.order.delivery_address|escapejs }}`,
+            lat: {{ delivery.order.latitude|default:'null' }},
+            lng: {{ delivery.order.longitude|default:'null' }}
+        },
+        {% endfor %}
+    ];
+    if (document.getElementById('driver-map')) {
+        const defaultCenter = deliveries.find(d => d.lat && d.lng) || {lat: 20.5937, lng: 78.9629};
+        const map = new google.maps.Map(document.getElementById('driver-map'), {
+            center: {lat: defaultCenter.lat || 20.5937, lng: defaultCenter.lng || 78.9629},
+            zoom: 6
+        });
+        deliveries.forEach(d => {
+            if (d.lat && d.lng) {
+                const marker = new google.maps.Marker({
+                    position: {lat: d.lat, lng: d.lng},
+                    map: map,
+                    title: `Order #${d.id}`
+                });
+                const infowindow = new google.maps.InfoWindow({
+                    content: `<strong>Order #${d.id}</strong><br>${d.address}`
+                });
+                marker.addListener('click', function() {
+                    infowindow.open(map, marker);
+                });
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
