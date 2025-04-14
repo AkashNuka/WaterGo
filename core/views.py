@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import HttpResponseForbidden, JsonResponse
 from .models import WaterType, Order, Customer, User, Driver, Delivery, GuestOrder
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
 
 def home(request):
     water_types = WaterType.objects.all()
@@ -617,3 +619,42 @@ def create_guest_order(request):
         })
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+# API endpoints
+@login_required
+def get_order_details(request, order_id):
+    """API endpoint to get order details"""
+    try:
+        order = Order.objects.get(pk=order_id, customer__user=request.user)
+        data = {
+            'id': order.id,
+            'water_type': {
+                'name': order.water_type.name,
+                'price_per_unit': float(order.water_type.price_per_unit)
+            },
+            'quantity': order.quantity,
+            'total_price': float(order.total_price),
+            'status': order.status,
+            'delivery_address': order.delivery_address,
+            'order_date': order.order_date.isoformat(),
+            'delivery_date': order.delivery_date.isoformat() if order.delivery_date else None
+        }
+        return JsonResponse(data)
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'Order not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def cancel_order(request, order_id):
+    """API endpoint to cancel an order"""
+    try:
+        order = Order.objects.get(pk=order_id, customer__user=request.user, status__in=['pending', 'confirmed'])
+        order.status = 'cancelled'
+        order.save()
+        return JsonResponse({'status': 'success', 'message': 'Order cancelled successfully'})
+    except Order.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Order not found or cannot be cancelled'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

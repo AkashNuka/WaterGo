@@ -35,4 +35,8 @@ urlpatterns = [
     path('owner/edit-water-type/<int:water_type_id>/', views.edit_water_type, name='edit_water_type'),
     path('owner/manage-drivers/', views.manage_drivers, name='manage_drivers'),
     path('owner/manage-clients/', views.manage_clients, name='manage_clients'),
+    
+    # API endpoints
+    path('api/orders/<int:order_id>/', views.get_order_details, name='api_order_details'),
+    path('api/orders/<int:order_id>/cancel/', views.cancel_order, name='api_cancel_order'),
 ]
