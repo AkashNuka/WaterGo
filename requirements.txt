@@ -1,6 +1,11 @@
-Django>=4.0,<5.0
-psycopg2-binary>=2.9,<3.0
-gunicorn>=20.0,<21.0
-dj-database-url>=0.5.0,<1.0
-whitenoise>=6.0,<7.0
-Pillow>=9.0.0,<10.0.0  # For image handling
+Django==4.2.20  # Pin to exact version currently used in the project
+psycopg2-binary==2.9.9  # Pin to the latest stable 2.9.x version
+gunicorn==20.1.0  # Pin to latest 20.x version
+dj-database-url==0.5.0  # Pin to exact version
+whitenoise==6.6.0  # Pin to latest 6.x version
+Pillow==9.5.0  # Downgrade to a version compatible with Python 3.13 in Docker
+python-dotenv==1.0.1  # For environment variables management
+django-environ==0.11.2  # For better environment variable handling
+django-storages==1.14.2  # For file storage
+certifi==2024.2.2  # For secure SSL connections to Neon PostgreSQL
+urllib3==2.2.1  # Required for secure connections
