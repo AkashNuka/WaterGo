@@ -1,72 +1,153 @@
-{% extends 'core/base.html' %}
+{% extends 'core/client_base.html' %}
 
-{% block title %}Place Order | WaterGo{% endblock %}
+{% block title %}Checkout | WaterGo{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6 mx-auto">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Place Order for {{ water_type.name }}</h4>
+<div class="container mt-4">
+    <h2 class="mb-4">Checkout</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity</label>
-                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
-                        <div class="form-text">Price per unit: ${{ water_type.price_per_unit }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <!-- Cart Summary -->
+        <div class="col-md-5 order-md-2 mb-4">
+            <h4 class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-primary">Your Cart</span>
+                <span class="badge bg-primary rounded-pill">{{ cart_items|length }}</span>
+            </h4>
+            <ul class="list-group mb-3">
+                {% for item in cart_items %}
+                <li class="list-group-item d-flex justify-content-between lh-sm">
+                    <div>
+                        <h6 class="my-0">{{ item.water_type.name }}</h6>
+                        <small class="text-muted">Quantity: {{ item.quantity }}</small>
                     </div>
-                    <div class="mb-3">
-                        <label for="delivery_address" class="form-label">Delivery Address</label>
-                        <textarea class="form-control" id="delivery_address" name="delivery_address" rows="3" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Select Delivery Location on Map</label>
-                        <div id="map" style="height: 300px; width: 100%;"></div>
-                        <input type="hidden" id="latitude" name="latitude">
-                        <input type="hidden" id="longitude" name="longitude">
-                        <div class="form-text">Click on the map to set your delivery location.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone" required>
-                    </div>
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Confirm Order</button>
-                        <a href="{% url 'water_type_detail' water_type.id %}" class="btn btn-outline-secondary">Cancel</a>
-                    </div>
-                </form>
-            </div>
+                    <span class="text-muted">₹{% widthratio item.water_type.price_per_unit 1 item.quantity %}.00</span>
+                </li>
+                {% endfor %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Total (INR)</span>
+                    <strong>₹{{ total_price|floatformat:2 }}</strong>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Delivery Information Form -->
+        <div class="col-md-7 order-md-1">
+            <h4 class="mb-3">Delivery Information</h4>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="delivery_address" class="form-label">Delivery Address</label>
+                    <textarea class="form-control {% if form.delivery_address.errors %}is-invalid{% endif %}" id="delivery_address" name="delivery_address" rows="3" required>{{ request.POST.delivery_address|default:default_address }}</textarea>
+                    {% if form.delivery_address.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.delivery_address.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control {% if form.phone.errors %}is-invalid{% endif %}" id="phone" name="phone" value="{{ request.POST.phone|default:default_phone }}" required>
+                     {% if form.phone.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.phone.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Select Delivery Location on Map (Optional)</label>
+                    <div id="map" style="height: 300px; width: 100%; border-radius: 0.25rem; border: 1px solid #ced4da;"></div>
+                    <input type="hidden" id="latitude" name="latitude" value="{{ request.POST.latitude|default:'' }}">
+                    <input type="hidden" id="longitude" name="longitude" value="{{ request.POST.longitude|default:'' }}">
+                    <div class="form-text">Click on the map to set your precise delivery location.</div>
+                </div>
+                
+                <hr class="my-4">
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                    <a href="{% url 'view_cart' %}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-check-circle me-2"></i>Confirm Order
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
 <script>
 let map, marker;
+let initialLat = parseFloat(document.getElementById('latitude').value) || null;
+let initialLng = parseFloat(document.getElementById('longitude').value) || null;
+
 function initMap() {
+    let mapCenter = { lat: 20.5937, lng: 78.9629 }; // Default to India
+    let zoomLevel = 5;
+
+    if (initialLat && initialLng) {
+        mapCenter = { lat: initialLat, lng: initialLng };
+        zoomLevel = 15; // Zoom in if coordinates are pre-filled
+    }
+
     map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 20.5937, lng: 78.9629 }, // Center on India
-        zoom: 5
+        center: mapCenter,
+        zoom: zoomLevel
     });
+
+    if (initialLat && initialLng) {
+        placeMarker(mapCenter); // Place marker if coordinates are pre-filled
+    }
+
     map.addListener('click', function(e) {
         placeMarker(e.latLng);
     });
 }
+
 function placeMarker(location) {
-    if (marker) marker.setMap(null);
+    if (marker) {
+        marker.setMap(null);
+    }
     marker = new google.maps.Marker({
         position: location,
-        map: map
+        map: map,
+        draggable: true // Allow marker to be dragged
     });
-    document.getElementById('latitude').value = location.lat();
-    document.getElementById('longitude').value = location.lng();
+    document.getElementById('latitude').value = location.lat().toFixed(6);
+    document.getElementById('longitude').value = location.lng().toFixed(6);
+
+    // Update hidden fields if marker is dragged
+    marker.addListener('dragend', function(e) {
+        document.getElementById('latitude').value = e.latLng.lat().toFixed(6);
+        document.getElementById('longitude').value = e.latLng.lng().toFixed(6);
+    });
 }
+
 document.addEventListener('DOMContentLoaded', function() {
-    initMap();
+    // Ensure Google Maps API is loaded before calling initMap
+    if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+        initMap();
+    } else {
+        console.error("Google Maps API not loaded.");
+        // You could try to load it dynamically here if needed, or just show an error.
+        document.getElementById('map').innerHTML = '<div class="alert alert-danger">Could not load map. Please ensure you have an internet connection and API key is valid.</div>';
+    }
 });
 </script>
+<!-- IMPORTANT: Replace YOUR_GOOGLE_MAPS_API_KEY in your actual project setup -->
+<!-- <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap"></script> -->
+<!-- For now, assuming API key is loaded globally or initMap is called by another script -->
 {% endblock %}

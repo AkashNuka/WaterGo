@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, F, ExpressionWrapper, DecimalField
 from django.contrib import messages
 from django.utils import timezone
-from django.http import HttpResponseForbidden, JsonResponse
-from .models import WaterType, Order, Customer, User, Driver, Delivery, GuestOrder
+from django.http import HttpResponseForbidden, JsonResponse, HttpResponseBadRequest
+from .models import WaterType, Order, OrderItem, Customer, User, Driver, Delivery, GuestOrder, Cart, CartItem
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 def home(request):
     water_types = WaterType.objects.all()
@@ -60,43 +60,187 @@ def client_dashboard(request):
     
     return render(request, 'core/client_dashboard.html', context)
 
+# CART VIEWS
+
 @login_required
-def place_order(request, water_type_id):
+def view_cart(request):
+    """Displays the user's shopping cart with items and total price."""
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.all()
+    total_price = 0
+    for item in cart_items:
+        total_price += item.water_type.price_per_unit * item.quantity
+    
+    context = {
+        'cart': cart,
+        'cart_items': cart_items,
+        'total_price': total_price
+    }
+    return render(request, 'core/cart_detail.html', context)
+
+@login_required
+@require_POST
+def add_to_cart(request, water_type_id):
+    """
+    Adds a specified water type to the user's cart or updates its quantity.
+    Expects 'quantity' in POST data.
+    """
+    water_type = get_object_or_404(WaterType, pk=water_type_id)
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    
+    quantity_str = request.POST.get('quantity', '1')
+    try:
+        quantity = int(quantity_str)
+        if quantity < 1:
+            messages.error(request, "Quantity must be a positive integer.")
+            return redirect(request.META.get('HTTP_REFERER', 'view_cart'))
+    except ValueError:
+        messages.error(request, "Invalid quantity provided.")
+        return redirect(request.META.get('HTTP_REFERER', 'view_cart'))
+
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        water_type=water_type,
+        defaults={'quantity': quantity}
+    )
+    
+    if not created:
+        cart_item.quantity += quantity
+        cart_item.save()
+        messages.success(request, f"Updated quantity for {water_type.name} in your cart.")
+    else:
+        messages.success(request, f"{water_type.name} added to your cart.")
+        
+    return redirect('view_cart')
+
+@login_required
+@require_POST
+def update_cart_item(request, item_id):
+    """
+    Updates the quantity of a specific item in the user's cart.
+    Expects 'quantity' in POST data.
+    """
+    cart_item = get_object_or_404(CartItem, pk=item_id, cart__user=request.user)
+    
+    quantity_str = request.POST.get('quantity')
+    if not quantity_str:
+        messages.error(request, "No quantity provided.")
+        return redirect('view_cart')
+        
+    try:
+        quantity = int(quantity_str)
+        if quantity < 1:
+            messages.error(request, "Quantity must be at least 1. To remove, use the remove button.")
+            return redirect('view_cart')
+    except ValueError:
+        messages.error(request, "Invalid quantity.")
+        return redirect('view_cart')
+        
+    cart_item.quantity = quantity
+    cart_item.save()
+    messages.success(request, f"Quantity for {cart_item.water_type.name} updated.")
+    return redirect('view_cart')
+
+@login_required
+@require_POST
+def remove_from_cart(request, item_id):
+    """Removes a specific item from the user's cart."""
+    cart_item = get_object_or_404(CartItem, pk=item_id, cart__user=request.user)
+    item_name = cart_item.water_type.name
+    cart_item.delete()
+    messages.success(request, f"{item_name} removed from your cart.")
+    return redirect('view_cart')
+
+# END CART VIEWS
+
+
+@login_required
+def place_order(request): # Removed water_type_id
     if not request.user.is_client():
         return HttpResponseForbidden("Access denied")
-        
-    water_type = get_object_or_404(WaterType, pk=water_type_id)
     
+    cart, cart_created = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.all()
+
+    if not cart_items:
+        messages.warning(request, "Your cart is empty. Please add items before placing an order.")
+        return redirect('view_cart')
+
     if request.method == 'POST':
-        quantity = int(request.POST.get('quantity', 1))
         delivery_address = request.POST.get('delivery_address', '')
+        phone = request.POST.get('phone', '') # Assuming phone might be updated or confirmed at checkout
         latitude = request.POST.get('latitude')
         longitude = request.POST.get('longitude')
-        
-        # Get or create customer profile for the user
-        customer, created = Customer.objects.get_or_create(
+
+        if not delivery_address:
+            messages.error(request, "Delivery address is required.")
+            # Re-render page with cart items and form, showing error
+            return render(request, 'core/place_order.html', {
+                'cart_items': cart_items, 
+                'total_price': sum(item.water_type.price_per_unit * item.quantity for item in cart_items),
+                'delivery_address': delivery_address, # retain entered value
+                'phone': phone
+            })
+
+        customer, customer_created = Customer.objects.get_or_create(
             user=request.user,
-            defaults={
-                'address': delivery_address,
-                'phone': request.POST.get('phone', '')
-            }
+            defaults={'address': delivery_address, 'phone': phone}
         )
-        
-        # Create the order
+        # Update customer address if it has changed or if it was not set
+        if not customer_created and delivery_address and customer.address != delivery_address:
+            customer.address = delivery_address
+            customer.save()
+        if phone and customer.phone != phone: # Update phone if provided and different
+             customer.phone = phone
+             customer.save()
+
         order = Order.objects.create(
             customer=customer,
-            water_type=water_type,
-            quantity=quantity,
             delivery_address=delivery_address,
-            total_price=water_type.price_per_unit * quantity,
+            status='pending', # Initial status
             latitude=latitude if latitude else None,
             longitude=longitude if longitude else None
+            # total_price will be calculated below
         )
         
+        current_total_price = 0
+        for item in cart_items:
+            order_item = OrderItem.objects.create(
+                order=order,
+                water_type=item.water_type,
+                quantity=item.quantity,
+                price_at_purchase=item.water_type.price_per_unit 
+            )
+            current_total_price += order_item.get_total_item_price()
+        
+        order.total_price = current_total_price
+        order.save()
+        
+        # Clear the cart
+        cart.items.all().delete() 
+        # Or cart.delete() if you want a new cart ID each time
+
         messages.success(request, "Your order has been placed successfully!")
         return redirect('order_confirmation', order_id=order.id)
     
-    return render(request, 'core/place_order.html', {'water_type': water_type})
+    # GET request: display checkout page with cart summary
+    total_price = sum(item.water_type.price_per_unit * item.quantity for item in cart_items)
+    # Try to get existing customer address to pre-fill
+    try:
+        current_customer = Customer.objects.get(user=request.user)
+        default_address = current_customer.address
+        default_phone = current_customer.phone
+    except Customer.DoesNotExist:
+        default_address = ''
+        default_phone = ''
+
+    context = {
+        'cart_items': cart_items,
+        'total_price': total_price,
+        'default_address': default_address,
+        'default_phone': default_phone,
+    }
+    return render(request, 'core/place_order.html', context) # Renders the checkout page
 
 @login_required
 def order_confirmation(request, order_id):
@@ -689,21 +833,30 @@ def create_guest_order(request):
 # API endpoints
 @login_required
 def get_order_details(request, order_id):
-    """API endpoint to get order details"""
+    """
+    API endpoint to get order details.
+    Returns a JSON response with order information, including line items.
+    """
     try:
-        order = Order.objects.get(pk=order_id, customer__user=request.user)
+        # Ensure the order belongs to the user or user is staff/owner for broader access
+        # For now, assuming client access to their own orders
+        order = Order.objects.prefetch_related('items', 'items__water_type').get(pk=order_id, customer__user=request.user)
+        items_data = [{
+            'water_type_name': item.water_type.name,
+            'quantity': item.quantity,
+            'price_at_purchase': float(item.price_at_purchase),
+            'total_item_price': float(item.get_total_item_price())
+        } for item in order.items.all()]
+        
         data = {
             'id': order.id,
-            'water_type': {
-                'name': order.water_type.name,
-                'price_per_unit': float(order.water_type.price_per_unit)
-            },
-            'quantity': order.quantity,
+            'items': items_data, # List of order items
             'total_price': float(order.total_price),
             'status': order.status,
             'delivery_address': order.delivery_address,
             'order_date': order.order_date.isoformat(),
-            'delivery_date': order.delivery_date.isoformat() if order.delivery_date else None
+            'delivery_date': order.delivery_date.isoformat() if order.delivery_date else None,
+            'customer_name': order.customer.user.username # Example of including customer info
         }
         return JsonResponse(data)
     except Order.DoesNotExist:

@@ -16,9 +16,16 @@ urlpatterns = [
     
     # Client URLs
     path('client/dashboard/', views.client_dashboard, name='client_dashboard'),
-    path('client/order/<int:water_type_id>/', views.place_order, name='place_order'),
+    # path('client/order/<int:water_type_id>/', views.place_order, name='place_order'), # Old place_order URL
+    path('client/order/place/', views.place_order, name='place_order'), # New place_order URL
     path('client/order-confirmation/<int:order_id>/', views.order_confirmation, name='order_confirmation'),
     path('client/my-orders/', views.my_orders, name='my_orders'),
+    
+    # Cart URLs
+    path('cart/', views.view_cart, name='view_cart'),
+    path('cart/add/<int:water_type_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/update/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
+    path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
     
     # Driver URLs
     path('driver/dashboard/', views.driver_dashboard, name='driver_dashboard'),

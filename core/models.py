@@ -93,9 +93,7 @@ class Order(models.Model):
     )
     
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
-    water_type = models.ForeignKey(WaterType, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) # Default to 0, will be calculated
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     delivery_address = models.TextField()
     order_date = models.DateTimeField(auto_now_add=True)
@@ -107,10 +105,21 @@ class Order(models.Model):
         return f"Order #{self.id} by {self.customer.user.username}"
     
     def save(self, *args, **kwargs):
-        # Calculate total price if not set
-        if not self.total_price:
-            self.total_price = self.water_type.price_per_unit * self.quantity
+        # total_price will be calculated by view logic or a signal.
+        # For now, ensure it's saved if provided.
         super().save(*args, **kwargs)
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    water_type = models.ForeignKey(WaterType, on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField()
+    price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity} of {self.water_type.name} for Order #{self.order.id}"
+
+    def get_total_item_price(self):
+        return self.price_at_purchase * self.quantity
 
 class Delivery(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='delivery')
@@ -147,3 +156,19 @@ class GuestOrder(models.Model):
         if not self.total_price:
             self.total_price = self.tanker_count * 500
         super().save(*args, **kwargs)
+
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cart for {self.user.username}"
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    water_type = models.ForeignKey(WaterType, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.quantity} of {self.water_type.name} in cart for {self.cart.user.username}"

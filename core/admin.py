@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Customer, WaterType, Order, Delivery, Driver
+from .models import User, Customer, WaterType, Order, OrderItem, Delivery, Driver, Cart, CartItem
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'role', 'is_staff', 'is_active')
@@ -37,12 +37,33 @@ class WaterTypeAdmin(admin.ModelAdmin):
     list_display = ('name', 'price_per_unit')
     search_fields = ('name',)
 
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 1 # Number of empty forms to display
+    readonly_fields = ('price_at_purchase',) # Price at purchase shouldn't be changed here
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'water_type', 'quantity', 'total_price', 'status', 'order_date')
+    list_display = ('id', 'customer', 'total_price', 'status', 'order_date')
     list_filter = ('status', 'order_date')
-    search_fields = ('customer__user__username', 'customer__user__email')
-    readonly_fields = ('total_price',)
+    search_fields = ('customer__user__username', 'customer__user__email',)
+    readonly_fields = ('total_price',) # total_price is calculated
+    inlines = [OrderItemInline]
+
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+    extra = 1
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    list_display = ('user', 'created_at', 'updated_at')
+    search_fields = ('user__username',)
+    inlines = [CartItemInline]
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ('order', 'water_type', 'quantity', 'price_at_purchase')
+    search_fields = ('order__id', 'water_type__name')
 
 @admin.register(Delivery)
 class DeliveryAdmin(admin.ModelAdmin):
